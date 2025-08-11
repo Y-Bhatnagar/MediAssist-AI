@@ -22,7 +22,7 @@ assist = AzureAIChatCompletionsModel(
 
 #using Lagchain to gather symptoms
 from langchain_core.prompts import ChatPromptTemplate
-prompt = ChatPromptTemplate.from_message(
+prompt = ChatPromptTemplate.from_messages(
     [
         (
         "system",
