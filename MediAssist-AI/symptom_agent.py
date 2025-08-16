@@ -8,16 +8,15 @@ if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
 
 #ckecking if the endpoint is available in the enviornment
 if not os.getenv("AZURE_INFERENCE_ENDPOINT"):
-    os.environ ["AZURE_INFERENCE_ENDPOINT"]= getpass.getpass("Enter your model: ")
+    os.environ ["AZURE_INFERENCE_ENDPOINT"]= getpass.getpass("Enter endpoint: ").strip()
 
 #istantiation
 from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
 assist = AzureAIChatCompletionsModel(
-    model_name="gpt-5-nano",
-    temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
+    endpoint = os.environ["AZURE_INFERENCE_ENDPOINT"],
+    credential = os.environ ["AZURE_INFERENCE_CREDENTIAL"],
+    model="grok-3-mini",
+    temperature=0
 )
 
 #using Lagchain to gather symptoms
@@ -35,8 +34,11 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
+from langchain_core.output_parsers import StrOutputParser
+parser = StrOutputParser()
+
 #using chain
-summary_sym = prompt | assist
+summary_sym = prompt | assist | parser
 symptoms = summary_sym.invoke (
     {"input": input("Please tell me your symptoms:\n")}
 )
