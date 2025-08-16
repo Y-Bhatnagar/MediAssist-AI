@@ -2,8 +2,6 @@
 import getpass #The getpass module is used to safely input passwords or sensitive information from the user without displaying them on the screen (no echo).
 import os # allows to interact with the operating system
 
-from langchain_core.tracers import ConsoleCallbackHandler
-
 #checking if the key is available in envornment
 if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
     os.environ ["AZURE_INFERENCE_CREDENTIAL"]= getpass.getpass("Enter your Azure API key: ")
