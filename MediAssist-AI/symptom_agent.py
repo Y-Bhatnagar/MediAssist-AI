@@ -1,6 +1,8 @@
 # since we wil be using the LLm interference we will be using the package langchain-azure-ai from https://python.langchain.com/docs/integrations/providers/microsoft/
 import getpass #The getpass module is used to safely input passwords or sensitive information from the user without displaying them on the screen (no echo).
 import os # allows to interact with the operating system
+import asyncio # provides support for asynchronous programming
+import websockets # used for creating WebSocket connections
 
 #checking if the key is available in envornment
 if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
@@ -26,6 +28,39 @@ patient_summariser = AzureAIChatCompletionsModel(
     temperature=0
 )
 
+# Defining the communication between Aayu and backend
+send_queue = asyncio.Queue() #Message aayu sends to backend
+receive_queue = asyncio.Queue() #message backend sends to aayu
+client_id = "aayu"
+
+#Backend connection as bc
+async def backend_connection():
+    async with websockets.connect (f"ws://127.0.0.1:8000/conversation/{client_id}") as bc:
+        #Create sender and receiver tasks to run concurrently
+        sender = asyncio.create_task(send_message(bc))
+        receiver = asyncio.create_task(receive_message(bc))
+        await asyncio.gather(sender,receiver)
+
+#definining the asyncronous sender function
+async def send_message(bc):
+    while True:
+        msg = await send_queue.get()
+        print (f"message to send to backend: {msg}")
+        await bc.send(msg)
+
+#defining the asyncronous receiving function
+async def receive_message(bc):
+    while True:
+        msg = await bc.recv()
+        print (f"message received from the backend: {msg}")
+        await receive_queue.put(msg)
+
+#async def main():
+    #await backend_connection()
+
+#if __name__ == "__main__":
+    #asyncio.run(main())
+
 #Defining Aayu's prompt template
 from langchain_core.prompts import ChatPromptTemplate
 prompt = ChatPromptTemplate.from_messages(
@@ -49,7 +84,6 @@ Summary_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-#
 #defining schema for the structured output from Aayu for patient
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
@@ -97,34 +131,36 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 memory = InMemorySaver()
-
+    
 #defining the state
 class conversation (MessagesState):
     pass
 
 #defining nodes for graph
 #defining the asking node: introduces Aayu and asks how the user is feeling
-def asking_node(state: conversation):
-    """This nodes takes the user's input and appends it to the messages list in the state"""
+async def asking_node(state: conversation):
+    """This nodes accepts and send messages from queue and appends it to the messages list in the state"""
     if len(state["messages"]) ==1:
         intro = state["messages"][-1].content
-        print(f"{intro}\n")
-        input_msg = HumanMessage(content=input())
+        await send_queue.put(intro)
+        response = await receive_queue.get()
+        input_msg = HumanMessage(content= str(response))
     else:
-        input_msg = HumanMessage(content=input())
+        response = await receive_queue.get()
+        input_msg = HumanMessage(content= str(response))
     return {"messages": input_msg}
 
 #defining the Aayu node: invokes llm and passes last message to it
-def Aayu_node(state: conversation):
+async def Aayu_node(state: conversation):
     last_msg = state["messages"]
-    
-    invocation = chat.invoke({"input": last_msg})
+    invocation = await chat.ainvoke({"input": last_msg})
     response_1 = invocation.response
     response = response_1[0].content
     next_step = invocation.next_steps
-    print(f"\n Aayu: {response}\n")
+    #print(f"\n Aayu: {response}\n")
+    await send_queue.put(response)
     return Command (
-        update = {"messages": response},
+        update = {"messages": response_1},
         goto = {next_step}
     )
 
@@ -137,12 +173,13 @@ def route (state: conversation):
         return "Aayu_node"
 
 #defining the patient summary writing node
-def patient_summary_writer_node(state: conversation):
+async def patient_summary_writer_node(state: conversation):
     """This node will generate a summary of Aayu's conversation with the patient"""
     num_of_mssg = len(state["messages"])
     input_patient_summary_writer = "\n".join(f"{type(msg).__name__} : {msg.content}" for msg in state["messages"][0:(num_of_mssg - 1)])
-    summariser = agent_summariser.invoke({"patient_data": input_patient_summary_writer})
-    print(f"Summary of our conversation: \n{summariser}\n")
+    summariser = await agent_summariser.ainvoke({"patient_data": input_patient_summary_writer})
+    #print(f"Summary of our conversation: \n{summariser}\n")
+    await send_queue.put(str(summariser))
     msg = AIMessage(content = str(summariser)) # can use f string if the error persists
     return Command(
         update = {"messages": msg},
@@ -158,6 +195,13 @@ graph.add_conditional_edges("asking_node", route)
 
 flow = graph.compile(checkpointer = memory)
 config = {"configurable" : {"thread_id" : "1"}}
-start_msg = flow.invoke({"messages": [AIMessage(content= "Hello! I'm Aayu. Please tell me how are you feeling?")]}, config)
+async def run():
+    asyncio.create_task(backend_connection())
+    await asyncio.sleep (1)
+    start_msg = await flow.ainvoke({"messages": [AIMessage(content= "Hello! I'm Aayu. Please tell me how you are feeling?")]}, config)
+
+if __name__ == "__main__":
+    asyncio.run(run())
+
 log = flow.get_state(config)
 print (f"{log}\n")
