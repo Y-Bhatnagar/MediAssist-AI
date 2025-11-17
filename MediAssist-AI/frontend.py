@@ -9,9 +9,6 @@ incoming = asyncio.Queue()
 outgoing = asyncio.Queue()
 client_id = "frontend"
 
-#history of messages
-#history = []
-
 #defining connection
 async def backend_connection():
     async with websockets.connect(f"ws://127.0.0.1:8000/conversation/{client_id}") as ws:
@@ -50,31 +47,12 @@ def poll_incoming (history):
             print(f"message appended to history")
         return history
     return gr.update()
-#def output_msg(message, history):
-    #msg_to_backend = requests.post("http://127.0.0.1:8000/user_input", data = {"user_message" : f"{message}"})
-    #history.append(("user", message))
-    #return history
 
 #function to send response to the backend
 async def output_msg(msg, history):
     history.append({"role": "user", "content" : msg})
     await outgoing.put(msg)
     return "", history    
-
-#function to receive input from backend
-#async def input_msg(chatbot):
-    #msg = await incoming.get()
-    #history.append({"role": "assistant", "content" : msg})
-    #return history
-
-
-#def get_first_response():
-    #backend_response = requests.get("http://127.0.0.1:8000/display_message")
-    #msg = backend_response.json()["message"]
-    #if msg and (not history or history[-1][1] != msg):
-        #history.append(("system", msg))
-        #return history, gr.update(value = 0)
-    #return history, gr.update(value = 1)
 
 #function to upload files
 async def upload_files(files, history):

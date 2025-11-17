@@ -3,6 +3,8 @@ import getpass #The getpass module is used to safely input passwords or sensitiv
 import os # allows to interact with the operating system
 import asyncio # provides support for asynchronous programming
 import websockets # used for creating WebSocket connections
+from datetime import datetime
+import re
 
 #checking if the key is available in envornment
 if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
@@ -55,21 +57,16 @@ async def receive_message(bc):
         print (f"message received from the backend: {msg}")
         await receive_queue.put(msg)
 
-#async def main():
-    #await backend_connection()
-
-#if __name__ == "__main__":
-    #asyncio.run(main())
-
 #Defining Aayu's prompt template
 from langchain_core.prompts import ChatPromptTemplate
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", """Your name is Aayu, you are an medical professional. Your task is to have a friendly conversation with the user to gather information about their symptoms.
         You should ask relevant follow up questions to understand patients (Name, age), their medical history, their symptoms, their allergies, any medications they might be taking, or any other information
-        that might be relevant to diagnose their condition. 
+        that might be relevant to diagnose their condition. If you feel necessary, you could also request the user to kindly share any medical test report available with them using the upload button, and analyse it.
         Once you have determined that the user has shared adequate amount of information that could help a doctor diagnose their condition, please confirm with them if they would like to share
-        any other detail. If they don't wish to share anything else, proceed to invoke the tool to summarise the conversation.
+        any other detail. If they don't wish to share anything else, proceed to invoke the tool to summarise the conversation. Once, summary is ready, please guess which medical specialist (E.g: General Physician, Neurologist,
+        dermatologist) should the user must consult, and inform them only if you are 100 per cent or more sure in guess. In end please invoke the state_writer node to save the conversation in a file.
         While replying do not repeat yourself, and never ask questions for which the user has already provided information."""),
         ("user", "{input}")
     ]
@@ -89,13 +86,14 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from langchain_core.messages import AnyMessage
 class summary_format (BaseModel):
-    Patient_identification: Optional[list[str]] = Field(None, description="Patient's personal details like name, age and sex")
+    Patient_Name: Optional[str] = Field(None, description="Patient's Name")
+    Age: Optional[str] = Field(None, description="Patient's age")
     Symptoms: Optional[str] = Field(None, description="The symptoms reported by the patient")
     Medical_history: Optional[str] = Field(None, description="The medical history of the patient")
     Allergies: Optional[str] = Field(None, description="Any allergies the patient has")
     Medications: Optional[str] = Field(None, description="Any medications the patient is currently taking")
     Highlights: Optional[str] = Field(None, description= "Any important facts that a doctor should know about the patient but wasn't covered above")
-    summary: Optional[str] = Field(None,description="A concise summary of the patient's condition and symptoms in sentences")
+    Summary: Optional[str] = Field(None,description="A concise summary of the patient's condition and symptoms in sentences")
 
     #formating
     def __str__(self):
@@ -105,15 +103,8 @@ class summary_format (BaseModel):
         return "\n".join(lines)
 
 class guide (BaseModel):
-    response: list[AnyMessage] = Field(None, description="Aayu's response to the patient")
-    next_steps: Literal ["asking_node", "patient_summary_writer_node", "END"] = Field(None, description="Decide the next step based on the conversation with the patient")
-
-#attaching the schema and chaining the llm
-llm_1 = assist.with_structured_output(guide)
-chat = prompt | llm_1
-
-llm_2 = patient_summariser.with_structured_output(summary_format)
-agent_summariser = Summary_prompt | llm_2
+    response: list[AnyMessage] = Field(None, description="llm's response to users input")
+    next_steps: Literal ["asking_node", "patient_summary_writer_node","state_writer","END"] = Field(None, description="Decide the next step based on the conversation with the patient")
 
 #defining schema for the structured output from Aayu for Doctor
 """class dr_summary_format (BaseModel):
@@ -136,6 +127,13 @@ memory = InMemorySaver()
 class conversation (MessagesState):
     pass
 
+#attaching the schema and chaining the llm
+llm_1 = assist.with_structured_output(guide)
+chat = prompt | llm_1
+
+llm_2 = patient_summariser.with_structured_output(summary_format)
+agent_summariser = Summary_prompt | llm_2
+
 #defining nodes for graph
 #defining the asking node: introduces Aayu and asks how the user is feeling
 async def asking_node(state: conversation):
@@ -155,14 +153,65 @@ async def Aayu_node(state: conversation):
     last_msg = state["messages"]
     invocation = await chat.ainvoke({"input": last_msg})
     response_1 = invocation.response
-    response = response_1[0].content
+    print (f"aayu's response: {response_1}\n")
+    print (f"next node: {invocation.next_steps}\n")
+    if response_1 == None:
+        response_1 = AIMessage(content = f"{response_1}")
+    else:
+        response = response_1[0].content
+        #print(f"\n Aayu: {response}\n")
+        await send_queue.put(response)
     next_step = invocation.next_steps
-    #print(f"\n Aayu: {response}\n")
-    await send_queue.put(response)
     return Command (
         update = {"messages": response_1},
         goto = {next_step}
     )
+
+#defining the node to write the Graph's state to file
+async def state_writer(state: conversation):
+    "Write the graph's state to a text file"
+    identity = datetime.now().isoformat()
+
+    #Building Folder
+    folder = "patient_logs"
+    os.makedirs(folder, exist_ok = True)
+
+    #extracting summary
+    summary = ""
+    for msg in reversed(state["messages"]):
+        if "Patient_Name" in msg.content:
+            summary = msg.content.strip()
+            match = re.search(r"Patient_Name:\s*([A-Za-z' -]+)", summary)
+            if match:
+                patient_name = match.group(1)
+            else:
+                patient_name = "Unknown"
+            break
+
+    #extracting the conversation for embedding
+    conversation = []
+    for msg in state["messages"]:
+        if isinstance(msg, AIMessage):
+            role = "Aayu"
+        elif isinstance(msg, HumanMessage):
+            role = patient_name
+        else:
+            role = "Unknown"
+        conversation.append(f"{role}:{msg.content.strip()}")
+
+    #making the file
+    file_name = f"{patient_name}_{identity}.txt"
+    file_path = os.path.join(folder, file_name)
+    #writing to the file
+    with open (file_path,'a+') as file:
+        file.write(f"Date: {datetime.now().strftime('%Y-%m-%d')}\n")
+        file.write(f"{summary}\n")
+        file.write("\n".join(conversation))
+    print(f"state")
+    msg = AIMessage(content = f"{file_name} created successfully")
+    return Command(
+        update = {"messages": msg},
+        goto = {END})
 
 #defining routing function
 def route (state: conversation):
@@ -189,6 +238,7 @@ graph = StateGraph(conversation)
 graph.add_node("asking_node", asking_node)
 graph.add_node("Aayu_node", Aayu_node)
 graph.add_node("patient_summary_writer_node", patient_summary_writer_node)
+graph.add_node("state_writer", state_writer)
 
 graph.add_edge(START, "asking_node")
 graph.add_conditional_edges("asking_node", route)
@@ -204,4 +254,5 @@ if __name__ == "__main__":
     asyncio.run(run())
 
 log = flow.get_state(config)
+
 print (f"{log}\n")
