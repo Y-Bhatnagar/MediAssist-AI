@@ -32,3 +32,4 @@ python-multipart
 ipykernel
 jupyterlab
 ruff
+langchain_azure_ai
