@@ -33,3 +33,4 @@ ipykernel
 jupyterlab
 ruff
 langchain_azure_ai
+langchain_community
