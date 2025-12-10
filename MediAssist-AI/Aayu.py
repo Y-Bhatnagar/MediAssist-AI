@@ -3,8 +3,10 @@ import getpass #The getpass module is used to safely input passwords or sensitiv
 import os # allows to interact with the operating system
 import asyncio # provides support for asynchronous programming
 import websockets # used for creating WebSocket connections
+import re, uuid
 from datetime import datetime
-import re
+from langchain_community.document_loaders import TextLoader #document loader 
+from langchain_text_splitters import RecursiveCharacterTextSplitter #text_splitter
 
 #checking if the key is available in envornment
 if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
@@ -13,6 +15,17 @@ if not os.getenv("AZURE_INFERENCE_CREDENTIAL"):
 #ckecking if the endpoint is available in the enviornment
 if not os.getenv("AZURE_INFERENCE_ENDPOINT"):
     os.environ ["AZURE_INFERENCE_ENDPOINT"]= getpass.getpass("Enter endpoint: ").strip()
+
+#checking if the embedding service endpoint is available in the enviornment
+if not os.getenv("AZURE_OPENAI_ENDPOINT"):
+    os.environ["AZURE_OPENAI_ENDPOINT"] = getpass.getpass("Enter the Embedding Model endpoint : ")
+
+#checking if the vector stores endpoint and API is available
+if not os.getenv("Azure_search_endpoint"):
+    os.environ["Azure_search_endpoint"] = getpass.getpass("Enter the Azure Search Endpoint: ")
+
+if not os.getenv("Azure_search_API"):
+    os.environ["Azure_search_API"] = getpass.getpass("Enter the Azure Search API: ")
 
 #istantiation
 from langchain_azure_ai.chat_models import AzureAIChatCompletionsModel
@@ -28,6 +41,23 @@ patient_summariser = AzureAIChatCompletionsModel(
     credential = os.environ ["AZURE_INFERENCE_CREDENTIAL"],
     model="grok-3-mini",
     temperature=0
+)
+# embedding model
+from langchain_openai import AzureOpenAIEmbeddings
+embedding_engine = AzureOpenAIEmbeddings(
+    azure_endpoint = os.environ ["AZURE_OPENAI_ENDPOINT"],
+    api_key = os.environ ["AZURE_INFERENCE_CREDENTIAL"],
+    model="text-embedding-3-large",
+    api_version = "2024-02-01"
+)
+
+#Vector Store
+from langchain_community.vectorstores.azuresearch import AzureSearch
+vector_store: AzureSearch = AzureSearch(
+    azure_search_endpoint = os.environ ["Azure_search_endpoint"],
+    azure_search_key = os.environ ["Azure_search_API"],
+    index_name = "patient_test",
+    embedding_function = embedding_engine.embed_query #lambda x: x
 )
 
 # Defining the communication between Aayu and backend
@@ -172,21 +202,26 @@ async def state_writer(state: conversation):
     "Write the graph's state to a text file"
     identity = datetime.now().isoformat()
 
-    #Building Folder
-    folder = "patient_logs"
-    os.makedirs(folder, exist_ok = True)
+    #Building base folder
+    base_folder = "patient_logs"
+    os.makedirs(base_folder, exist_ok = True)
 
     #extracting summary
     summary = ""
     for msg in reversed(state["messages"]):
         if "Patient_Name" in msg.content:
             summary = msg.content.strip()
-            match = re.search(r"Patient_Name:\s*([A-Za-z' -]+)", summary)
+            match = re.search(r"Patient_Name:\s*(.+)", summary)
             if match:
                 patient_name = match.group(1)
             else:
                 patient_name = "Unknown"
             break
+    
+    #creating sub folder
+    safe_name = re.sub(r'[^A-Za-z0-9 _-]', '', patient_name)
+    patient_folder = os.path.join(base_folder, safe_name)
+    os.makedirs(patient_folder, exist_ok=True)
 
     #extracting the conversation for embedding
     conversation = []
@@ -200,18 +235,18 @@ async def state_writer(state: conversation):
         conversation.append(f"{role}:{msg.content.strip()}")
 
     #making the file
-    file_name = f"{patient_name}_{identity}.txt"
-    file_path = os.path.join(folder, file_name)
+    file_name = f"Visit_{identity}.txt"
+    file_path = os.path.join(patient_folder, file_name)
     #writing to the file
     with open (file_path,'a+') as file:
         file.write(f"Date: {datetime.now().strftime('%Y-%m-%d')}\n")
         file.write(f"{summary}\n")
         file.write("\n".join(conversation))
-    print(f"state")
-    msg = AIMessage(content = f"{file_name} created successfully")
+    
+    msg = AIMessage(content = f"{file_name} created successfully at file path:{file_path}")
     return Command(
         update = {"messages": msg},
-        goto = {END})
+        goto = "aayu_vector_node")
 
 #defining routing function
 def route (state: conversation):
@@ -232,13 +267,58 @@ async def patient_summary_writer_node(state: conversation):
     msg = AIMessage(content = str(summariser)) # can use f string if the error persists
     return Command(
         update = {"messages": msg},
-        goto = {"Aayu_node"})
+        goto = "Aayu_node")
+
+#defining the Aayu node to embed the user interaction and store in vector database
+async def aayu_vector_node (state: conversation):
+    
+    #extracting the file path
+    for msg in reversed(state["messages"]):
+        if "file path" in msg.content:
+            match = re.search(r"file path:\s*(.+)", msg.content.strip())
+            if match:
+                file_path = match.group(1)
+            else:
+                file_path = "Unknown"
+            break
+
+    from pathlib import Path
+    p = Path(file_path)
+    visit = p.name
+    Patient_Name = p.parent.name
+    print (f"file path is: {file_path}")
+
+    #defining function to generate ID
+    convo_id = str(uuid.uuid4()).replace("-","")[:16]
+    print (f"id: {convo_id}")
+    
+    loader = TextLoader(file_path) #loading conversation
+    docs = loader.load()
+    
+    print (f"document loader worked correctly. {len(docs)} created\n")
+    print (f"{docs[0].page_content}\n")
+    print (f"metadata {docs[0].metadata}\n")
+
+    text_splitter = RecursiveCharacterTextSplitter (chunk_size= 350, chunk_overlap = 50, add_start_index=True, separators=["\nAayu:", "\n", ". ", " "])
+    split_docs = text_splitter.split_documents(docs) #spliting documents
+    print (f"text splitter succeceded. {len(split_docs)}\n")
+    
+    await vector_store.aadd_documents(documents = split_docs)
+    
+    print (f"vector stored")
+
+    msg = AIMessage(content = "embedding added to the vector store successfully!")
+    return Command(
+        update = {"messages" : msg},
+        goto = END
+    )
 
 graph = StateGraph(conversation)
 graph.add_node("asking_node", asking_node)
 graph.add_node("Aayu_node", Aayu_node)
 graph.add_node("patient_summary_writer_node", patient_summary_writer_node)
 graph.add_node("state_writer", state_writer)
+graph.add_node("aayu_vector_node", aayu_vector_node)
 
 graph.add_edge(START, "asking_node")
 graph.add_conditional_edges("asking_node", route)

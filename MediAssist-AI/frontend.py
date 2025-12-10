@@ -77,11 +77,18 @@ async def upload_files(files, history):
     return history
 
 
-with gr.Blocks(theme=gr.themes.Monochrome()) as app:
-    gr.Markdown("# 🩺 Aayu, a Medical Assistant"),
-    chatbot = gr.Chatbot(height=500, type="messages", show_label=False)
-    msg = gr.Textbox(placeholder = "Type your message here...")
-    files = gr.UploadButton("Upload PDF or Image", file_types = [".pdf", "image"], file_count = "multiple")
+with gr.Blocks() as app:
+    gr.HTML("""<style> body { background-color: #f7f7f7; font-family: sans-serif; } 
+    #header {
+            font-size: 60px;
+            text-align: left;
+            font-weight: bold;
+            </style>""")
+    gr.Markdown("### 🩺 Aayu, a Medical Assistant", elem_id="header"),
+    chatbot = gr.Chatbot(height=500, show_label=False)
+    with gr.Column():
+        msg = gr.Textbox(placeholder = "Type your message here...", scale = 1)
+        files = gr.File(label = "Upload PDF or Image", file_types = [".pdf", "image"], file_count = "multiple")
     
     msg.submit(output_msg, inputs = [msg, chatbot], outputs = [msg,chatbot])
     files.upload(upload_files, inputs = [files,chatbot], outputs = chatbot)
@@ -89,6 +96,6 @@ with gr.Blocks(theme=gr.themes.Monochrome()) as app:
     # Launch background connection
     app.load(lambda: asyncio.run(backend_connection()))
     timer = gr.Timer(1.0)
-    timer.tick(poll_incoming, chatbot, chatbot)
+    timer.tick(fn = poll_incoming, inputs = chatbot, outputs = chatbot)
    
 app.launch()
