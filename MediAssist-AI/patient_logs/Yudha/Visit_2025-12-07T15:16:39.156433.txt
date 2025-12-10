@@ -1,0 +1,37 @@
+Date: 2025-12-07
+Patient_Name: Yudha
+Age: 27
+Symptoms: 102 fever since yesterday, running nose with mucus while coughing, bit of headache
+Medical_history: No relevant past conditions
+Allergies: Allergic to dust mites
+Medications: Took paracetamol
+Highlights: Blood test report indicates low hemoglobin (9.10 g/dl), low RBC count (3.19 mill/cmm), low haematocrit (27.20%), high RDW (16.5%), high WBC count (10560 /ul) with elevated neutrophils (87.7%) suggesting possible infection or inflammation, and low lymphocytes (5.9%).
+Summary: Yudha, a 27-year-old male, is experiencing a high fever of 102 degrees since yesterday, along with a runny nose producing mucus during coughs and a mild headache. He has no significant medical history, is allergic to dust mites, and has taken paracetamol for relief. Blood test results show signs of anemia and an elevated white blood cell count, which may indicate an underlying infection.
+Aayu:Hello! I'm Aayu. Please tell me how you are feeling?
+Yudha:hi i am yudha, i am having 102 fever since yesterday
+Aayu:Hi Yudha, I'm sorry to hear about your fever—102 degrees is quite high. To better understand what's going on, could you share your age and any other symptoms you've noticed? Also, do you have any medical history, like past illnesses or conditions, that might be relevant?
+Yudha:i am 27 years old, and i have running nose with mucus coming while coughing and bit headache
+Aayu:Thanks for the details, Yudha. With your fever, runny nose, cough, and headache, it's helpful to know more. Could you share any medical history, like past illnesses or conditions? Also, do you have any allergies or current medications?
+Yudha:no relevant past conditions. i am allergetic to dust mites and took paracetamol
+Aayu:Thank you for sharing that, Yudha. I have a good understanding of your symptoms now. Before we proceed, is there anything else you'd like to add, such as other symptoms, recent activities, or any medical test results? If you have reports, you can upload them using the upload button.
+Yudha:{"/tmp/gradio/5c82a5a60d5443ed315318a7081da2f79284167e785d6145a3f4aaa59e0f048a/test.png": "8.05\\n024\\nSHREE DIAGNOSTIC CENTRE\\nTime : 8:00 am to 8:00 pm . Sunday - 8:00 to 12:00 noon\\nDr.\\n: Dr. BHAVESH CHAUHAN MD\\n: Shree Hospital IPD\\nSample Id\\n: 10436879\\nAtul S. Vadhavkar B.Sc. (Micro). D.M.L.T.\\nFULLY COMPUTERISED PATHOLOGICAL LABORATORY\\nSHREE HOSPITAL, Gan Murbad Road, Kalyan (W).\\n& Time :\\n12:47:26\\nReport Release Time :\\n13:42:13\\nCOMPLETE BLOOD COUNT\\nTest\\nResult\\nUnit\\nBiological Ref. Range\\nHaemoglobin :\\n9.10 [L]\\ngm/dl\\n13.0-17.0 gm/dl\\nTotal R.B.C. Count :\\n3.19 [L]\\nmill/cmm\\n4.5-5.5 mill/cmm\\nHaematocrit (PCV/HCT) :\\n27.20 [L]\\n%\\n40.0-50.0 %\\nMean Corpuscular Volume (M.C.V.) :\\n85.30\\nfl\\n83.0-95.0 fl\\nMean Corpuscular Hb (M.C.H.) :\\n28.50\\nPg\\n27.0-32.0 Pg\\nMean Corpuscular Hb Conc (M.C.H.C.) :\\n33.50\\ng/dl\\n31.5-34.5 g/dl\\n{ # } Red cell Distribution Width (R.D.W .- :\\n16.5 [H]\\n%\\n11.6-14.6 %\\nCV)\\nTotal W.B.C. Count :\\n10560 [H]\\n/ul\\n4000-10000 /ul\\nDIFFERENTIAL COUNT:\\nNeutrophils :\\n87.7 [H]\\n%\\n40-70 %\\nLymphocytes :\\n5.9 [L]\\n%\\n20-40 %\\nEosinophils :\\n0.7 [L]\\n%\\n1-6 %\\nMonocytes :\\n5.5\\n%\\n2-10 %\\nBasophils :\\n0.2\\n%\\n0-1 %\\nPLATELETS\\nPlatelet Count :\\n370\\n/uL\\n150-450 /uL\\n{ # } MPV :\\n9.4\\nfL\\n6.78-13.46 fL\\n{ # } IMMATURE PLATELET FRACTION :\\n2.90\\n%\\n0-5 %\\nABSOLUTE COUNTS\\nNeutrophils (abs) :\\n9261.12 [H]\\n/uL\\n1575-8800/uL\\nLymphocytes (abs) :\\n623.04 [L]\\n/uL\\n1125-4950 /uL\\nEosinophils (abs) :\\n73.92\\n/uL\\n0-400 /uL\\nMonocytes (abs) :\\n580.80\\n/uL\\n0-1000 /uL\\nBasophils (abs) :\\n21.12\\n/uL\\n0-100 /uL\\nSpecimen: EDTA whole blood\\nEquipment: Mindray BC-700\\nMethod : HB-Colorimetric, WBC-Flowcytometry by laser,RBC & PLT-Elecrical Impedance,HCT,MCV,MCH,MCHC,RDW,MPV-Calculated\\nBlood Peripheral Smear-RBC-WBC-PLT Morphology-Manual Method staining (Romanowsky) Field Stain and Microscopy.\\n** CBC done on fully autoamted Five Part Haematology Analyser.\\nAccuracy of platelet count depends on blood collection and anticoagulation.\\nNote : # This Parameter is not under NABL scope.\\nNABL M(EL)T LABS\\nP\\n1 of 4\\nEnd Of Report\\nA. s. ulla\\nAtul S. Vadhavkar B. Sc. (Micro). D.M.L.T.\\nDr. A. J. Ranadive M.D. (Pathology) :unselected:"}
+Aayu:Thank you for sharing the blood test report, Yudha. It shows some abnormalities, like low hemoglobin and a high white blood cell count, which could be linked to your symptoms. Before I summarize our conversation, is there anything else you'd like to add, such as recent activities or other details?
+Yudha:no
+Aayu:Patient_Name: Yudha
+Age: 27
+Symptoms: 102 fever since yesterday, running nose with mucus while coughing, bit of headache
+Medical_history: No relevant past conditions
+Allergies: Allergic to dust mites
+Medications: Took paracetamol
+Highlights: Blood test report shows low hemoglobin (9.10 g/dl), low RBC count (3.19 mill/cmm), low haematocrit (27.20%), high RDW (16.5%), high WBC count (10560 /ul) with elevated neutrophils (87.7%) suggesting possible infection or inflammation, and low lymphocytes (5.9%); patient has a high fever which could be linked to these findings.
+Summary: Yudha, a 27-year-old male, is experiencing high fever, runny nose with mucus during cough, and mild headache. He has no significant medical history, is allergic to dust mites, and has taken paracetamol for symptom relief. Blood test results indicate anemia and an elevated white blood cell count, potentially pointing to an infection.
+Aayu:None
+Aayu:Patient_Name: Yudha
+Age: 27
+Symptoms: 102 fever since yesterday, running nose with mucus while coughing, bit of headache
+Medical_history: No relevant past conditions
+Allergies: Allergic to dust mites
+Medications: Took paracetamol
+Highlights: Blood test report indicates low hemoglobin (9.10 g/dl), low RBC count (3.19 mill/cmm), low haematocrit (27.20%), high RDW (16.5%), high WBC count (10560 /ul) with elevated neutrophils (87.7%) suggesting possible infection or inflammation, and low lymphocytes (5.9%).
+Summary: Yudha, a 27-year-old male, is experiencing a high fever of 102 degrees since yesterday, along with a runny nose producing mucus during coughs and a mild headache. He has no significant medical history, is allergic to dust mites, and has taken paracetamol for relief. Blood test results show signs of anemia and an elevated white blood cell count, which may indicate an underlying infection.
+Aayu:None
