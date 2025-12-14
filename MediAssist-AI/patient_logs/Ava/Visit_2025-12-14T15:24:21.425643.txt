@@ -1,0 +1,33 @@
+Date: 2025-12-14
+Patient_Name: Ava
+Age: 23
+Symptoms: Sharp pain in the right knee that started this morning, with slight swelling, difficulty standing after waking up, no redness, no other symptoms reported, no specific injury aware of, and normal daily activities.
+Medical_history: No past history of injury, borderline diabetes, no arthritis.
+Allergies: Dust allergy.
+Medications: Doxcy (current medication).
+Highlights: Acute onset of knee pain with swelling in a 23-year-old with borderline diabetes may indicate possible inflammatory or metabolic causes; dust allergy and medication use should be considered for potential interactions or exacerbations.
+Summary: Ava, a 23-year-old female, presents with acute sharp right knee pain starting today, accompanied by slight swelling and difficulty standing. She has no injury history but reports borderline diabetes, a dust allergy, and is currently taking doxcy medication, with no other symptoms or medical reports available.
+Aayu:Hello! I'm Aayu. Please tell me how you are feeling?
+Ava:hey, i am currently feeling knee pain on right side
+Aayu:I'm sorry to hear about your right knee pain. To help better, could you share your name, age, when the pain started, and if it might be related to any injury or activity?
+Ava:my name is ava, age; 23, pain started in moring today itself no any specific injury that i am aware of
+Aayu:Hi Ava, thanks for sharing that. I'm here to help understand your knee pain better. Could you describe the pain – is it sharp, dull, or aching? Have you noticed any swelling, redness, or difficulty with movement? Also, do you have any medical history, allergies, or medications you're currently taking?
+Ava:my pain is sharp and i am not able to stand after waking up in noring
+Aayu:Thanks for sharing more about your pain, Ava. That's really helpful. To better understand what's going on, could you let me know if you've noticed any swelling or redness in your knee? Also, I'd appreciate if you could tell me about any medical history, such as past injuries or conditions, any allergies, or medications you're currently taking?
+Ava:no past histoey of any injury, slight sweling is present no redness
+Aayu:Thanks for the update, Ava. That's helpful. To better understand your situation, could you share if you have any other medical conditions, such as diabetes or arthritis? Also, do you have any allergies to medications or foods, and are you currently taking any medications or supplements? If you have any recent medical test reports, feel free to upload them using the upload button.
+Ava:i do have dust allergy, boderline diabetes but no arthritis
+Aayu:Thank you for sharing that, Ava. It's good to know about your dust allergy and borderline diabetes. To help us understand your knee pain better, could you tell me if you're currently taking any medications or supplements? Also, are there any other symptoms you've noticed? If you have any recent medical test reports, please feel free to upload them using the upload button.
+Ava:no other symptom as such, doxcy is medication i am on
+Aayu:Thank you for sharing that, Ava. Before we proceed, is there anything else you'd like to add, such as details about your daily activities or any medical test reports you can upload?
+Ava:no medical reports, daily activity is normal
+Aayu:Thank you for confirming, Ava. I have all the information needed to proceed.
+Aayu:Patient_Name: Ava
+Age: 23
+Symptoms: Sharp pain in the right knee that started this morning, with slight swelling, difficulty standing after waking up, no redness, no other symptoms reported, no specific injury aware of, and normal daily activities.
+Medical_history: No past history of injury, borderline diabetes, no arthritis.
+Allergies: Dust allergy.
+Medications: Doxcy (current medication).
+Highlights: Acute onset of knee pain with swelling in a 23-year-old with borderline diabetes may indicate possible inflammatory or metabolic causes; dust allergy and medication use should be considered for potential interactions or exacerbations.
+Summary: Ava, a 23-year-old female, presents with acute sharp right knee pain starting today, accompanied by slight swelling and difficulty standing. She has no injury history but reports borderline diabetes, a dust allergy, and is currently taking doxcy medication, with no other symptoms or medical reports available.
+Aayu:None
