@@ -57,7 +57,7 @@ vector_store: AzureSearch = AzureSearch(
     azure_search_endpoint = os.environ ["Azure_search_endpoint"],
     azure_search_key = os.environ ["Azure_search_API"],
     index_name = "patient_test",
-    embedding_function = embedding_engine.embed_query #lambda x: x
+    embedding_function = embedding_engine.embed_query
 )
 
 #reteriver
@@ -152,9 +152,9 @@ async def reteriver (query: str):
     "Use this tool to retervive information about a patient from the vector store"
     docs = await retriever.ainvoke(query)
     print (f"retervied succesfully\n {docs}")
-    docs_2 = await vector_store.asimilarity_search(query = query,k=5,search_type="hybrid")
-    print (f"vector similarity search result: \n {docs_2}")
-    result = "\n\n".join([doc.page_content for doc in docs_2])
+    #docs_2 = await vector_store.asimilarity_search(query = query,k=5,search_type="hybrid")
+    #print (f"vector similarity search result: \n {docs_2}")
+    result = "\n\n".join([doc.page_content for doc in docs])
     return result
 
 #defining schema for the structured output from Aayu for patient
@@ -186,16 +186,6 @@ class dr_guide (BaseModel):
     response: list[AnyMessage] = Field(None, description="llm's response to users input")
     next_steps: Literal ["receiving_node","information_gatherer","END"] = Field (None, description="Decide the next step based on the conversation with the doctor" )
 
-#defining schema for the structured output from Aayu for Doctor
-"""class dr_summary_format (BaseModel):
-    Patient_identification: str = Field(None, description="Patient's personal details like name, age and sex")
-    Symptoms: str = Field(None, description="The symptoms reported by the patient")
-    Medical_history: str = Field(None, description="The medical history of the patient")
-    Allergies: str = Field(None, description="Any allergies the patient has")
-    Medications: str = Field(None, description="Any medications the patient is currently taking")
-    Diagonostic_1 : str = Field(None, description = "")
-    Highlights: str = Field(None, description= "Any important facts that a doctor should know about the patient but wasn't covered above")"""
-
 #Starting the graph
 from langgraph.graph import START, StateGraph, MessagesState, END
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -222,6 +212,7 @@ llm_4 = assist.bind_tools([reteriver])
 gatherer = i_prompt | llm_4
 
 #defining nodes for graph
+
 #defining the asking node: introduces Aayu and asks how the user is feeling
 async def asking_node(state: conversation):
     """This nodes accepts and send messages from queue and appends it to the messages list in the state"""
@@ -240,13 +231,12 @@ async def Aayu_node(state: conversation):
     last_msg = state["messages"]
     invocation = await chat.ainvoke({"input": last_msg})
     response_1 = invocation.response
-    print (f"aayu's response: {response_1}\n")
-    print (f"next node: {invocation.next_steps}\n")
+    print (f"\naayu's response: {response_1}\n")
+    print (f"\nnext node: {invocation.next_steps}\n")
     if response_1 == None:
         response_1 = AIMessage(content = f"{response_1}")
     else:
         response = response_1[0].content
-        #print(f"\n Aayu: {response}\n")
         await send_queue.put(response)
     next_step = invocation.next_steps
     return Command (
