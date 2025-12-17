@@ -57,7 +57,15 @@ vector_store: AzureSearch = AzureSearch(
     azure_search_endpoint = os.environ ["Azure_search_endpoint"],
     azure_search_key = os.environ ["Azure_search_API"],
     index_name = "patient_test",
-    embedding_function = embedding_engine.embed_query #lambda x: x
+    embedding_function = embedding_engine.embed_query
+)
+
+#reteriver
+from langchain_community.retrievers import AzureAISearchRetriever
+retriever = AzureAISearchRetriever(
+    service_name = "aayu-vector-store",
+    api_key = os.environ ["Azure_search_API"],
+    content_key="content", top_k=5, index_name="patient_test"
 )
 
 # Defining the communication between Aayu and backend
@@ -97,7 +105,7 @@ prompt = ChatPromptTemplate.from_messages(
         Once you have determined that the user has shared adequate amount of information that could help a doctor diagnose their condition, please confirm with them if they would like to share
         any other detail. If they don't wish to share anything else, proceed to invoke the tool to summarise the conversation. Once, summary is ready, please guess which medical specialist (E.g: General Physician, Neurologist,
         dermatologist) should the user must consult, and inform them only if you are 100 per cent or more sure in guess. In end please invoke the state_writer node to save the conversation in a file.
-        While replying do not repeat yourself, and never ask questions for which the user has already provided information."""),
+        While replying do not repeat yourself, and never ask questions for which the user has already provided information. if at any point of time user requests to switch to doctor mode, then switch to Dr node"""),
         ("user", "{input}")
     ]
 )
@@ -110,6 +118,44 @@ Summary_prompt = ChatPromptTemplate.from_messages(
         ("user", """Here is the conversation between Aayu and the patient: {patient_data}""")
     ]
 )
+
+#defining prompt for the dr mode
+dr_mode_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", """Are an experienced Medical professional, whose goal is to assist doctor with the diagnosis using all the accessible means. First time the user connects to dr mode, welcome then and politely
+        enquire about the assistace they may need. Whenever you give any medical advice, it is very crucial for you to include the source that you have refered to while replying to doctor.
+        Some Scenarios you can follow:
+        In case doctor wishes to reveiw a patient's case: Reterive patient files using the reteriving process
+        If doctor enquires about some facts reterive the related docs and inform the doctor in case relevant information is not available inform the doctor.
+        if doctor enquires about something else use retrival and other resources to answer to best of your capacity, but never ever hallucinate or create false information. 
+        Reterving process: reterive the information using the gatherer_node, and compose a poilte, helpful reply"""),
+        ("user", "{input}")
+    ]
+)
+
+#defining investigator prompt
+i_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", """Your task is to analyse the converstaion, then gather the relevant information using tools. Once a tool shares an information
+        judge whether it has provided sufficient information. If the information is not sufficient, identify what is missing and use tools to reterive it. Once you have the complete
+        information, compile it along with the list of sources that you have refered. in case you couldn't reterive information, simply inform what you were unable to find,
+        but never generate reando answers not linked to source"""),
+        ("user", "{input}")
+    ]
+)
+
+#defining tools
+from langchain.tools import tool
+#defining the tool to retrive the files associated with the user query
+@tool
+async def reteriver (query: str):
+    "Use this tool to retervive information about a patient from the vector store"
+    docs = await retriever.ainvoke(query)
+    print (f"retervied succesfully\n {docs}")
+    #docs_2 = await vector_store.asimilarity_search(query = query,k=5,search_type="hybrid")
+    #print (f"vector similarity search result: \n {docs_2}")
+    result = "\n\n".join([doc.page_content for doc in docs])
+    return result
 
 #defining schema for the structured output from Aayu for patient
 from pydantic import BaseModel, Field
@@ -134,23 +180,18 @@ class summary_format (BaseModel):
 
 class guide (BaseModel):
     response: list[AnyMessage] = Field(None, description="llm's response to users input")
-    next_steps: Literal ["asking_node", "patient_summary_writer_node","state_writer","END"] = Field(None, description="Decide the next step based on the conversation with the patient")
+    next_steps: Literal ["asking_node", "patient_summary_writer_node","state_writer","dr_node","END"] = Field(None, description="Decide the next step based on the conversation with the patient")
 
-#defining schema for the structured output from Aayu for Doctor
-"""class dr_summary_format (BaseModel):
-    Patient_identification: str = Field(None, description="Patient's personal details like name, age and sex")
-    Symptoms: str = Field(None, description="The symptoms reported by the patient")
-    Medical_history: str = Field(None, description="The medical history of the patient")
-    Allergies: str = Field(None, description="Any allergies the patient has")
-    Medications: str = Field(None, description="Any medications the patient is currently taking")
-    Diagonostic_1 : str = Field(None, description = "")
-    Highlights: str = Field(None, description= "Any important facts that a doctor should know about the patient but wasn't covered above")"""
+class dr_guide (BaseModel):
+    response: list[AnyMessage] = Field(None, description="llm's response to users input")
+    next_steps: Literal ["receiving_node","information_gatherer","END"] = Field (None, description="Decide the next step based on the conversation with the doctor" )
 
 #Starting the graph
 from langgraph.graph import START, StateGraph, MessagesState, END
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
+
 memory = InMemorySaver()
     
 #defining the state
@@ -164,7 +205,14 @@ chat = prompt | llm_1
 llm_2 = patient_summariser.with_structured_output(summary_format)
 agent_summariser = Summary_prompt | llm_2
 
+llm_3 = assist.with_structured_output(dr_guide)
+advice = dr_mode_prompt | llm_3
+
+llm_4 = assist.bind_tools([reteriver])
+gatherer = i_prompt | llm_4
+
 #defining nodes for graph
+
 #defining the asking node: introduces Aayu and asks how the user is feeling
 async def asking_node(state: conversation):
     """This nodes accepts and send messages from queue and appends it to the messages list in the state"""
@@ -183,13 +231,12 @@ async def Aayu_node(state: conversation):
     last_msg = state["messages"]
     invocation = await chat.ainvoke({"input": last_msg})
     response_1 = invocation.response
-    print (f"aayu's response: {response_1}\n")
-    print (f"next node: {invocation.next_steps}\n")
+    print (f"\naayu's response: {response_1}\n")
+    print (f"\nnext node: {invocation.next_steps}\n")
     if response_1 == None:
         response_1 = AIMessage(content = f"{response_1}")
     else:
         response = response_1[0].content
-        #print(f"\n Aayu: {response}\n")
         await send_queue.put(response)
     next_step = invocation.next_steps
     return Command (
@@ -313,15 +360,86 @@ async def aayu_vector_node (state: conversation):
         goto = END
     )
 
+#defining the dr. Aayu node
+async def dr_node (state:conversation):
+    "Opens doctor or dr mode for the doctor"
+    msg = state["messages"]
+    invocation = await advice.ainvoke({"input" : msg})
+    ai_msgs = invocation.response
+    print (f"\n DR_node response : {ai_msgs}")
+    step = invocation.next_steps
+    print (f"\n next step : {step}")
+    if ai_msgs == None:
+        ai_msg = AIMessage(content = f"{ai_msgs}")
+    else:
+        ai_msg = ai_msgs[0].content
+        print(f"\n Number of messages : {len(ai_msgs)}")
+        await send_queue.put(ai_msg)
+    return Command (
+        update = {"messages" : ai_msg},
+        goto = {step}
+    )
+
+#defining the receiving node to fetch response from backend and add to state
+async def receiving_node (state: conversation):
+    "fetches response from backend and add to state"
+    msg = await receive_queue.get()
+    user_msg = HumanMessage(content = f"{msg}")
+    return Command(
+        update = {"messages" : user_msg},
+        goto = "dr_node")
+
+#LLM to reterive the conversation and share the update
+async def information_gatherer (state:conversation):
+    "gathers relevant information on the basis of conversation"
+    msgs = state["messages"]
+    result = await gatherer.ainvoke ({"input" : msgs})
+    print (f"\n gather's response : {result}")
+    info = result.content
+    print (f"\n message to backend {info}")
+    await send_queue.put(info)
+    return {"messages": result}
+
+#Tool node for reteriver
+async def reteriver_node (state: conversation):
+    print ("reached reteriver node")
+    msg = state["messages"][-1]
+    result = []
+    tool_call = msg.tool_calls
+    for call in tool_call:
+        if call["name"] == "reteriver":
+            observation = await reteriver.ainvoke(call["args"])
+            result.append(ToolMessage(
+                content = observation,
+                tool_call_id=call["id"]
+            ))
+    return {"messages" : result}
+
+#routing function
+def route_tool (state : conversation):
+    last_msg = state["messages"][-1]
+    if last_msg.tool_calls:
+         n = last_msg.tool_calls
+         print (f"\n routing function value: {n[0]['name']}_node")
+         return f"{n[0]['name']}_node"
+    
+    return "dr_node"
+
 graph = StateGraph(conversation)
 graph.add_node("asking_node", asking_node)
 graph.add_node("Aayu_node", Aayu_node)
 graph.add_node("patient_summary_writer_node", patient_summary_writer_node)
 graph.add_node("state_writer", state_writer)
 graph.add_node("aayu_vector_node", aayu_vector_node)
+graph.add_node("dr_node", dr_node)
+graph.add_node("receiving_node", receiving_node)
+graph.add_node("information_gatherer", information_gatherer)
+graph.add_node("reteriver_node", reteriver_node)
 
 graph.add_edge(START, "asking_node")
 graph.add_conditional_edges("asking_node", route)
+graph.add_conditional_edges("information_gatherer", route_tool)
+graph.add_edge("reteriver_node", "information_gatherer")
 
 flow = graph.compile(checkpointer = memory)
 config = {"configurable" : {"thread_id" : "1"}}
