@@ -1,10 +1,10 @@
-AAYU — AI Medical Assistant
+****AAYU — AI Medical Assistant****
 
 A multi-agent, safety-conscious AI system for structured medical intake, context building, and retrieval-grounded clinical conversations.
 
 ---
 
-Overview
+**Overview**
 
 AAYU is a non-diagnostic AI medical assistant designed to support healthcare workflows before and during clinical interactions. Its primary goal is to structure information, summarise it, and present it in a concise, structured form suitable for clinical review
 
@@ -12,7 +12,7 @@ The system engages patients through guided questioning, captures relevant patien
 
 ---
 
-Motivation
+**Motivation**
 
 Clinical interactions often suffer from:
 
@@ -25,7 +25,7 @@ AAYU addresses these challenges by acting as a pre-conversation structuring laye
 
 ---
 
-What AAYU Does
+**What AAYU Does**
 
 Intelligent Patient Intake
 
@@ -53,7 +53,7 @@ Doctor Mode (Grounded Exploration)
 
 ---
 
-Multi-Agent Architecture (LangGraph)
+**Multi-Agent Architecture (LangGraph)**
 
 AAYU is implemented using LangGraph to coordinate multiple specialized agents with clear separation of responsibilities.
 
@@ -84,7 +84,7 @@ Retrieval Agent (LLM)
 
 ---
 
-Post-Conversation Knowledge Pipeline
+**Post-Conversation Knowledge Pipeline**
 
 At the end of Aayu’s session:
 
@@ -96,7 +96,7 @@ This enables future retrieval and longitudinal context without reprocessing orig
 
 ---
 
-Technology Stack
+**Technology Stack**
 
 * Orchestration: LangGraph
 * Backend: FastAPI (async)
@@ -106,15 +106,13 @@ Technology Stack
 * LLMs: Separate instances for conversation, summarization, and retrieval
 
 ---
-
-Architecture Diagram
+**Architecture Diagram**
 
 <img width="692" height="537" alt="image" src="https://github.com/user-attachments/assets/f6f008b9-684a-4fe8-bc82-a9056b0ff3e0" />
 
 
 ---
-
-Why This Project Matters
+**Why This Project Matters**
 
 AAYU demonstrates how agent-orchestrated LLM systems can be applied responsibly in high-risk domains by:
 
@@ -124,7 +122,7 @@ AAYU demonstrates how agent-orchestrated LLM systems can be applied responsibly 
 
 ---
 
-Disclaimer
+**Disclaimer**
 
 This project is for educational and demonstration purposes only. It is not a medical device and does not provide medical advice, diagnosis, or treatment.
 
