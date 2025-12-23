@@ -122,6 +122,18 @@ AAYU demonstrates how agent-orchestrated LLM systems can be applied responsibly 
 
 ---
 
+***Videos***
+
+**Patient Mode**
+
+https://github.com/user-attachments/assets/26ec81ff-2042-4d44-b1a0-14c099ecbe28
+
+**Doctor Mode**
+
+https://github.com/user-attachments/assets/989597c2-3417-46b3-9f33-e9c065453655
+
+---
+
 **Disclaimer**
 
 This project is for educational and demonstration purposes only. It is not a medical device and does not provide medical advice, diagnosis, or treatment.
